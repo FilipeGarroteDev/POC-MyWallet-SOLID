@@ -1,3 +1,4 @@
+/* eslint-disable import/extensions */
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable no-console */
 import express from 'express';
@@ -17,13 +18,31 @@ const newUserSchema = joi.object({
   password: joi.required(),
 });
 
+const loginSchema = joi.object({
+  email: joi.email().required(),
+  password: joi.required(),
+});
+
 app.post('/signup', async (req, res) => {
   const { name, email, password } = req.body;
   const encryptedPassword = bcrypt.hashSync(password, 10);
-  const validation = newUserSchema.validate({ name, email, password });
+  const validation = newUserSchema.validate(
+    { name, email, password },
+    { abortEarly: false }
+  );
+  const hasThisEmail = await db.collection('users').findOne({ email });
+  const errors = validation.error.details
+    .map((error) => error.message)
+    .join('\n');
+
+  if (hasThisEmail) {
+    return res
+      .status(409)
+      .send('Já existe um usuário com esse e-mail.\nInsira um e-mail válido');
+  }
 
   if (validation.error) {
-    return res.sendStatus(400);
+    return res.status(400).send(errors);
   }
 
   try {
@@ -36,6 +55,35 @@ app.post('/signup', async (req, res) => {
   } catch (error) {
     return console.log(error.message);
   }
+});
+
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+  const token = uuid();
+  const validation = loginSchema({ email, password });
+  const user = await db.collection('users').findOne({ email });
+  const passwordIsValid = bcrypt.compareSync(password, user.password);
+
+  if (validation.error) {
+    return res
+      .status(400)
+      .send(
+        'Formato inválido de dados. O e-mail deve ter formato de email (xxx@xxx.xxx) e a senha não pode ser vazia'
+      );
+  }
+
+  if (!user || !passwordIsValid) {
+    return res
+      .status(409)
+      .send('Usuário ou senha inválidos. Revise seus dados.');
+  }
+
+  await db.collection('sessions').insertOne({
+    userId: user._id,
+    token,
+  });
+
+  return res.status(201).send(token);
 });
 
 app.listen(5000, () => console.log('Listening on port 5000'));
