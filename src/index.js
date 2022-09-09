@@ -94,4 +94,27 @@ app.post('/login', async (req, res) => {
   }
 });
 
+app.post('/login/sessions', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+
+  try {
+    const authUser = await db.collection('sessions').findOne({ token });
+    if (!authUser) {
+      return res
+        .status(401)
+        .send(
+          'O seu acesso à página está expirado.\nPor gentileza, refaça o login.'
+        );
+    }
+    const loggedUser = await db
+      .collection('users')
+      .findOne({ _id: authUser.userId });
+
+    delete loggedUser.password;
+    return res.status(200).send(loggedUser);
+  } catch (error) {
+    return res.status(400).send(error.message);
+  }
+});
+
 app.listen(5000, () => console.log('Listening on port 5000'));
