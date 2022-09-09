@@ -14,12 +14,12 @@ app.use(express.json());
 
 const newUserSchema = joi.object({
   name: joi.string().required(),
-  email: joi.email().required(),
+  email: joi.string().email().required(),
   password: joi.required(),
 });
 
 const loginSchema = joi.object({
-  email: joi.email().required(),
+  email: joi.string().email().required(),
   password: joi.required(),
 });
 
@@ -31,9 +31,6 @@ app.post('/signup', async (req, res) => {
     { abortEarly: false }
   );
   const hasThisEmail = await db.collection('users').findOne({ email });
-  const errors = validation.error.details
-    .map((error) => error.message)
-    .join('\n');
 
   if (hasThisEmail) {
     return res
@@ -42,6 +39,9 @@ app.post('/signup', async (req, res) => {
   }
 
   if (validation.error) {
+    const errors = validation.error.details
+      .map((error) => error.message)
+      .join('\n');
     return res.status(400).send(errors);
   }
 
@@ -60,9 +60,7 @@ app.post('/signup', async (req, res) => {
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   const token = uuid();
-  const validation = loginSchema({ email, password });
-  const user = await db.collection('users').findOne({ email });
-  const passwordIsValid = bcrypt.compareSync(password, user.password);
+  const validation = loginSchema.validate({ email, password });
 
   if (validation.error) {
     return res
@@ -72,18 +70,28 @@ app.post('/login', async (req, res) => {
       );
   }
 
-  if (!user || !passwordIsValid) {
-    return res
-      .status(409)
-      .send('Usuário ou senha inválidos. Revise seus dados.');
+  try {
+    const user = await db.collection('users').findOne({ email });
+    const passwordIsValid = bcrypt.compareSync(
+      password,
+      user ? user.password : ' '
+    );
+
+    if (!user || !passwordIsValid) {
+      return res
+        .status(401)
+        .send('Usuário ou senha inválidos. Revise seus dados.');
+    }
+
+    await db.collection('sessions').insertOne({
+      userId: user._id,
+      token,
+    });
+
+    return res.status(201).send(token);
+  } catch (error) {
+    return res.status(401).send(error.message);
   }
-
-  await db.collection('sessions').insertOne({
-    userId: user._id,
-    token,
-  });
-
-  return res.status(201).send(token);
 });
 
 app.listen(5000, () => console.log('Listening on port 5000'));
