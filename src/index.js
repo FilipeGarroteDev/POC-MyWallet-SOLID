@@ -1,12 +1,10 @@
+/* eslint-disable no-underscore-dangle */
 /* eslint-disable no-console */
 import express from 'express';
 import cors from 'cors';
-import { MongoClient } from 'mongodb';
-import dotenv from 'dotenv';
-dotenv.config();
+import { db } from './database/db.js';
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
