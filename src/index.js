@@ -150,11 +150,43 @@ app.get('/transactions', async (req, res) => {
     }
     const transactions = await db
       .collection('transactions')
-      .find({ _id: authUser.userId })
+      .find({ userId: authUser.userId })
       .toArray();
     console.log(transactions);
 
     return res.status(200).send(transactions);
+  } catch (error) {
+    return res.status(400).send(error.message);
+  }
+});
+
+app.post('/transactions', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const transaction = req.body;
+
+  if (!token) {
+    return res
+      .status(401)
+      .send(
+        'O seu acesso à página está expirado.\nPor gentileza, refaça o login.'
+      );
+  }
+
+  try {
+    const authUser = await db.collection('sessions').findOne({ token });
+    if (!authUser) {
+      return res
+        .status(401)
+        .send(
+          'O seu acesso à página está expirado.\nPor gentileza, refaça o login.'
+        );
+    }
+    await db.collection('transactions').insertOne({
+      ...transaction,
+      userId: authUser.userId,
+    });
+
+    return res.sendStatus(201);
   } catch (error) {
     return res.status(400).send(error.message);
   }
