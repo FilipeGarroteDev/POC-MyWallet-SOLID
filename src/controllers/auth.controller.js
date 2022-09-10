@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable import/extensions */
 /* eslint-disable no-underscore-dangle */
 import bcrypt from 'bcrypt';

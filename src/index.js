@@ -3,21 +3,15 @@
 /* eslint-disable no-console */
 import express from 'express';
 import cors from 'cors';
-
+import authRouter from './routes/authRoutes.js';
+import transactionRouter from './routes/transactionsRoutes.js';
 import { db } from './database/db.js';
-import {
-  authenticateToken,
-  loginUser,
-  registerUser,
-} from './controllers/auth.controller.js';
-import {
-  listUserTransactions,
-  postNewTransaction,
-} from './controllers/transactions.controller.js';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(authRouter);
+app.use(transactionRouter);
 
 async function removeInactiveUsers() {
   const now = Date.now();
@@ -28,15 +22,5 @@ async function removeInactiveUsers() {
 }
 
 setInterval(removeInactiveUsers, 300000);
-
-app.post('/signup', registerUser);
-
-app.post('/login', loginUser);
-
-app.post('/login/sessions', authenticateToken);
-
-app.get('/transactions', listUserTransactions);
-
-app.post('/transactions', postNewTransaction);
 
 app.listen(5000, () => console.log('Listening on port 5000'));
