@@ -2,66 +2,25 @@
 import { db } from '../database/db.js';
 
 async function listUserTransactions(req, res) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
+  const authUser = res.locals.user;
+  const transactions = await db
+    .collection('transactions')
+    .find({ userId: authUser.userId })
+    .toArray();
 
-  if (!token) {
-    return res
-      .status(401)
-      .send(
-        'Você não tem autorização para acessar essa página.\nPor gentileza, faça o login.'
-      );
-  }
-
-  try {
-    const authUser = await db.collection('sessions').findOne({ token });
-    if (!authUser) {
-      return res
-        .status(401)
-        .send(
-          'O seu acesso à página está expirado.\nPor gentileza, refaça o login.'
-        );
-    }
-    const transactions = await db
-      .collection('transactions')
-      .find({ userId: authUser.userId })
-      .toArray();
-
-    return res.status(200).send(transactions);
-  } catch (error) {
-    return res.status(400).send(error.message);
-  }
+  return res.status(200).send(transactions);
 }
 
 async function postNewTransaction(req, res) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
   const transaction = req.body;
+  const authUser = res.locals.user;
 
-  if (!token) {
-    return res
-      .status(401)
-      .send(
-        'O seu acesso à página está expirado.\nPor gentileza, refaça o login.'
-      );
-  }
+  await db.collection('transactions').insertOne({
+    ...transaction,
+    userId: authUser.userId,
+  });
 
-  try {
-    const authUser = await db.collection('sessions').findOne({ token });
-    if (!authUser) {
-      return res
-        .status(401)
-        .send(
-          'O seu acesso à página está expirado.\nPor gentileza, refaça o login.'
-        );
-    }
-    await db.collection('transactions').insertOne({
-      ...transaction,
-      userId: authUser.userId,
-    });
-
-    return res.sendStatus(201);
-  } catch (error) {
-    return res.status(400).send(error.message);
-  }
+  return res.sendStatus(201);
 }
 
 export { listUserTransactions, postNewTransaction };
