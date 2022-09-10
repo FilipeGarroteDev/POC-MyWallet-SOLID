@@ -6,6 +6,7 @@ import cors from 'cors';
 import bcrypt from 'bcrypt';
 import { v4 as uuid } from 'uuid';
 import joi from 'joi';
+
 import { db } from './database/db.js';
 
 const app = express();
@@ -86,6 +87,7 @@ app.post('/login', async (req, res) => {
     await db.collection('sessions').insertOne({
       userId: user._id,
       token,
+      timestamp: Date.now(),
     });
 
     return res.status(201).send(token);
@@ -95,7 +97,16 @@ app.post('/login', async (req, res) => {
 });
 
 app.post('/login/sessions', async (req, res) => {
-  const token = req.headers.authorization?.replace('Bearer ', '');
+  const auth = req.headers;
+  const token = auth.authorization?.replace('Bearer ', '');
+
+  if (!token || token === 'Bearer') {
+    return res
+      .status(401)
+      .send(
+        'O seu acesso à página está expirado.\nPor gentileza, refaça o login.'
+      );
+  }
 
   try {
     const authUser = await db.collection('sessions').findOne({ token });
@@ -112,6 +123,38 @@ app.post('/login/sessions', async (req, res) => {
 
     delete loggedUser.password;
     return res.status(200).send(loggedUser);
+  } catch (error) {
+    return res.status(400).send(error.message);
+  }
+});
+
+app.get('/transactions', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+
+  if (!token) {
+    return res
+      .status(401)
+      .send(
+        'O seu acesso à página está expirado.\nPor gentileza, refaça o login.'
+      );
+  }
+
+  try {
+    const authUser = await db.collection('sessions').findOne({ token });
+    if (!authUser) {
+      return res
+        .status(401)
+        .send(
+          'O seu acesso à página está expirado.\nPor gentileza, refaça o login.'
+        );
+    }
+    const transactions = await db
+      .collection('transactions')
+      .find({ _id: authUser.userId })
+      .toArray();
+    console.log(transactions);
+
+    return res.status(200).send(transactions);
   } catch (error) {
     return res.status(400).send(error.message);
   }
