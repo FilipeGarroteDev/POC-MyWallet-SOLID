@@ -7,5 +7,6 @@ const route = express.Router();
 route.use(tokenValidation);
 route.get('/transactions', transactionsRouter.listUserTransactions);
 route.post('/transactions', transactionsRouter.postNewTransaction);
+route.delete('/transactions/:id', transactionsRouter.deleteTransaction);
 
 export default route;

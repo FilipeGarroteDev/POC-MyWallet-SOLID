@@ -89,4 +89,14 @@ async function authenticateToken(req, res) {
   return res.status(200).send(loggedUser);
 }
 
+async function removeInactiveUsers() {
+  const now = Date.now();
+  const sessionLimit = now - 1000 * 60 * 20;
+  await db
+    .collection('sessions')
+    .deleteMany({ timestamp: { $lte: sessionLimit } });
+}
+
+setInterval(removeInactiveUsers, 300000);
+
 export { registerUser, loginUser, authenticateToken };
