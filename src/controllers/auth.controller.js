@@ -89,6 +89,17 @@ async function authenticateToken(req, res) {
   return res.status(200).send(loggedUser);
 }
 
+async function deleteClosedSession(req, res) {
+  const { token } = req.params;
+
+  try {
+    await db.collection('sessions').deleteOne({ token });
+    return res.sendStatus(200);
+  } catch (error) {
+    return res.status(400).send(error.message);
+  }
+}
+
 async function removeInactiveUsers() {
   const now = Date.now();
   const sessionLimit = now - 1000 * 60 * 20;
@@ -99,4 +110,4 @@ async function removeInactiveUsers() {
 
 setInterval(removeInactiveUsers, 300000);
 
-export { registerUser, loginUser, authenticateToken };
+export { registerUser, loginUser, authenticateToken, deleteClosedSession };

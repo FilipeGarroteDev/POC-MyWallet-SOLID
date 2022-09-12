@@ -11,6 +11,7 @@ router.post(
   tokenValidation,
   authController.authenticateToken
 );
+router.delete('/session/:token', authController.deleteClosedSession);
 
 router.use(searchUser);
 router.post('/signup', authController.registerUser);
