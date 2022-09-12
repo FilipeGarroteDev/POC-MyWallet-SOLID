@@ -2,21 +2,35 @@
 /* eslint-disable import/extensions */
 import { ObjectId } from 'mongodb';
 import { db } from '../database/db.js';
+import { editSchema, transactionSchema } from '../schemas/transactionSchema.js';
 
 async function listUserTransactions(req, res) {
   const authUser = res.locals.user;
-  const transactions = await db
-    .collection('transactions')
-    .find({ userId: authUser.userId })
-    .toArray();
+  try {
+    const transactions = await db
+      .collection('transactions')
+      .find({ userId: authUser.userId })
+      .toArray();
 
-  return res.status(200).send(transactions);
+    return res.status(200).send(transactions.reverse());
+  } catch (error) {
+    return res.status(400).send(error.message);
+  }
 }
 
 async function postNewTransaction(req, res) {
   const transaction = req.body;
   const authUser = res.locals.user;
+  const validation = transactionSchema.validate(transaction, {
+    abortEarly: false,
+  });
 
+  if (validation.error) {
+    const errors = validation.error.details
+      .map((error) => error.message)
+      .join('\n');
+    return res.status(400).send(errors);
+  }
   await db.collection('transactions').insertOne({
     ...transaction,
     userId: authUser.userId,
@@ -53,6 +67,16 @@ async function editTransaction(req, res) {
   const newTransaction = req.body;
   const transactionId = req.params.id;
   const authUser = res.locals.user;
+  const validation = editSchema.validate(newTransaction, {
+    abortEarly: false,
+  });
+
+  if (validation.error) {
+    const errors = validation.error.details
+      .map((error) => error.message)
+      .join('\n');
+    return res.status(400).send(errors);
+  }
 
   try {
     const transaction = await db

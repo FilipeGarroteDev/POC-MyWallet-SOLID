@@ -1,14 +1,19 @@
 /* eslint-disable import/extensions */
 import express from 'express';
-import * as authRouter from '../controllers/auth.controller.js';
-import { tokenValidation } from '../middlewares/tokenValidation.js';
+import * as authController from '../controllers/auth.controller.js';
+import { searchUser } from '../middlewares/searchUserMiddleware.js';
+import { tokenValidation } from '../middlewares/tokenValidationMiddleware.js';
 
 const router = express.Router();
 
-router.post('/signup', authRouter.registerUser);
-router.post('/login', authRouter.loginUser);
+router.post(
+  '/login/sessions',
+  tokenValidation,
+  authController.authenticateToken
+);
 
-router.use(tokenValidation);
-router.post('/login/sessions', authRouter.authenticateToken);
+router.use(searchUser);
+router.post('/signup', authController.registerUser);
+router.post('/login', authController.loginUser);
 
 export default router;

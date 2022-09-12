@@ -13,7 +13,7 @@ async function registerUser(req, res) {
     { name, email, password },
     { abortEarly: false }
   );
-  const hasThisEmail = await db.collection('users').findOne({ email });
+  const hasThisEmail = res.locals.user;
 
   if (hasThisEmail) {
     return res
@@ -34,7 +34,7 @@ async function registerUser(req, res) {
       email,
       password: encryptedPassword,
     });
-    return res.send(201);
+    return res.sendStatus(201);
   } catch (error) {
     return console.log(error.message);
   }
@@ -54,7 +54,7 @@ async function loginUser(req, res) {
   }
 
   try {
-    const user = await db.collection('users').findOne({ email });
+    const { user } = res.locals;
     const passwordIsValid = bcrypt.compareSync(
       password,
       user ? user.password : ' '
