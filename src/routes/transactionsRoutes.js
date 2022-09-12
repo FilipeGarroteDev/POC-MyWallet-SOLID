@@ -8,5 +8,6 @@ route.use(tokenValidation);
 route.get('/transactions', transactionsRouter.listUserTransactions);
 route.post('/transactions', transactionsRouter.postNewTransaction);
 route.delete('/transactions/:id', transactionsRouter.deleteTransaction);
+route.put('/transactions/:id', transactionsRouter.editTransaction);
 
 export default route;

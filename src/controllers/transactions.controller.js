@@ -49,4 +49,36 @@ async function deleteTransaction(req, res) {
   }
 }
 
-export { listUserTransactions, postNewTransaction, deleteTransaction };
+async function editTransaction(req, res) {
+  const newTransaction = req.body;
+  const transactionId = req.params.id;
+  const authUser = res.locals.user;
+
+  try {
+    const transaction = await db
+      .collection('transactions')
+      .findOne({ _id: ObjectId(transactionId) });
+
+    if (authUser.userId.toString() !== transaction.userId.toString()) {
+      return res
+        .status(401)
+        .send(
+          'Você não é o dono dessa transação e, portanto, não pode editá-la!'
+        );
+    }
+
+    await db
+      .collection('transactions')
+      .updateOne({ _id: transaction._id }, { $set: newTransaction });
+    return res.sendStatus(201);
+  } catch (error) {
+    return res.status(400).send(error.message);
+  }
+}
+
+export {
+  listUserTransactions,
+  postNewTransaction,
+  deleteTransaction,
+  editTransaction,
+};
